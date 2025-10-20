@@ -1,8 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from rag.retriever import get_top_k_chunks
 from openai import OpenAI
-from models.prompt_template import DEFAULT_RAG_PROMPT
+from models.prompt_template import get_prompt_template
 import os
 
 client = OpenAI()
@@ -10,6 +10,7 @@ router = APIRouter()
 
 class AskRequest(BaseModel):
     query: str
+    prompt_style: str = "default"
 
 @router.get("/", tags=["Welcome"])
 def index():
@@ -21,7 +22,14 @@ def ask_question(request: AskRequest):
     top_docs = get_top_k_chunks(query)
 
     context = "\n\n".join([doc.page_content for doc in top_docs])
-    prompt = DEFAULT_RAG_PROMPT(context, query)
+
+    prompt_style = request.prompt_style
+
+    try:
+        prompt_fn = get_prompt_template(prompt_style)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    prompt = prompt_fn(context, query)
 
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
