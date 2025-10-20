@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+openai==0.27.10
+faiss-cpu
+python-dotenv
+tiktoken
+langchain
+pydantic
+httpx
+redis
+pytest
